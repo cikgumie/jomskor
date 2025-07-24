@@ -171,7 +171,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- Configuration ---
-            // IMPORTANT: Replace this with your Google Apps Script Web App URL from Step 3.
             const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxWzBeIo4x3vax_mKSVyrtbF8IRN9hM_IrNt8pMhr5f9jkHXYgCHN2JyLsNsxx3HmcB/exec';
 
             // --- Global App State ---
@@ -366,23 +365,30 @@
 
                 fetch(WEB_APP_URL, {
                     method: 'POST',
-                    mode: 'no-cors', 
+                    // REMOVED mode: 'no-cors' to see the real response
                     cache: 'no-cache',
                     headers: {
-                        'Content-Type': 'application/json'
+                        // Content-Type is not needed here, as we are sending a string
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    redirect: 'follow' // Added for Apps Script redirects
                 })
-                .then(response => {
-                    submitStatus.textContent = 'Success! Sent to Telegram.';
-                    submitStatus.classList.add('text-green-500');
-                    setTimeout(() => {
-                        resetApp();
-                    }, 2000);
+                .then(response => response.json()) // We now expect a JSON response
+                .then(data => {
+                    if (data.status === 'success') {
+                        submitStatus.textContent = 'Success! Sent to Telegram.';
+                        submitStatus.classList.add('text-green-500');
+                        setTimeout(() => {
+                            resetApp();
+                        }, 2000);
+                    } else {
+                        // Display the actual error message from the script
+                        throw new Error(data.message || 'Unknown error from server.');
+                    }
                 })
                 .catch(error => {
                     console.error('Error sending to Telegram:', error);
-                    submitStatus.textContent = 'Error: Submission failed.';
+                    submitStatus.textContent = `Error: ${error.message}`;
                     submitStatus.classList.add('text-red-500');
                     submitBtn.disabled = false;
                 });
